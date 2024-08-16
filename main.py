@@ -20,7 +20,7 @@ def compute_semicircle(center, track_width_deg_lon, theta, vec_ip_tgt_norm):
     
     return semicircle_transformed
 
-def generate_racetrack(ip, tgt, speed, time_minutes, track_width, distance):
+def generate_racetrack(ip, tgt, speed, time_minutes, track_width, distance_to_ip, hold_type):
     """
     Generates a racetrack pattern based on the initial point (IP), target (TGT),
     aircraft speed, and time in minutes.
@@ -45,7 +45,7 @@ def generate_racetrack(ip, tgt, speed, time_minutes, track_width, distance):
     
     track_width_deg_lon = track_width / 60.0
     
-    distance_deg_lon = distance / 60.0
+    distance_deg_lon = distance_to_ip / 60.0
     
     # Calculate the vector from IP to TGT
     vec_ip_tgt = np.array([tgt[0] - ip[0], tgt[1] - ip[1]])
@@ -85,43 +85,51 @@ def generate_racetrack(ip, tgt, speed, time_minutes, track_width, distance):
 
     # Compute semicircle_2
     semicircle_2 = compute_semicircle(center_2, track_width_deg_lon, theta + np.pi, vec_ip_tgt_norm)
-
-    # Calculate the points for the straight legs
-    start_leg_1 = semicircle_1[-1]
-    end_leg_1 = semicircle_2[0]
     
-    start_leg_2 = semicircle_2[-1]
-    end_leg_2 = semicircle_1[0]
+    if hold_type == "ractrack":
+        # Calculate the points for the straight legs
+        start_leg_1 = semicircle_1[-1]
+        end_leg_1 = semicircle_2[0]
+    
+        start_leg_2 = semicircle_2[-1]
+        end_leg_2 = semicircle_1[0]
+    if hold_type == "eight-figure":
+        # Calculate the points for the straight legs
+        start_leg_1 = semicircle_1[-1]
+        end_leg_1 = semicircle_2[-1]
+    
+        start_leg_2 = semicircle_2[0]
+        end_leg_2 = semicircle_1[0]
     
     # Combine points into the racetrack
-    racetrack_points = {
+    hold_track_points = {
         'leg_1': [start_leg_1, end_leg_1],
         'semicircle_1': semicircle_1,
         'leg_2': [start_leg_2, end_leg_2],
         'semicircle_2': semicircle_2
     }
     
-    return racetrack_points
+    return hold_track_points
 
-def plot_racetrack(racetrack_points, ip, tgt):
+def plot_racetrack(hold_track_points, ip, tgt):
     plt.figure(figsize=(8, 8))
     
     # Plot straight legs
-    leg_1 = racetrack_points['leg_1']
+    leg_1 = hold_track_points['leg_1']
     plt.plot([leg_1[0][0], leg_1[1][0]], [leg_1[0][1], leg_1[1][1]], 'b-')
     
-    leg_2 = racetrack_points['leg_2']
+    leg_2 = hold_track_points['leg_2']
     plt.plot([leg_2[0][0], leg_2[1][0]], [leg_2[0][1], leg_2[1][1]], 'b-')
     
     # Plot semicircles
-    semicircle_1 = racetrack_points['semicircle_1']
+    semicircle_1 = hold_track_points['semicircle_1']
     plt.plot(semicircle_1[:, 0], semicircle_1[:, 1], 'r-')
     
-    semicircle_2 = racetrack_points['semicircle_2']
+    semicircle_2 = hold_track_points['semicircle_2']
     plt.plot(semicircle_2[:, 0], semicircle_2[:, 1], 'r-')
     
-    plt.plot(ip[0], ip[1], 'y*')
-    plt.plot(tgt[0], tgt[1], 'k*')
+    plt.plot(ip[0], ip[1], 'ys')
+    plt.plot(tgt[0], tgt[1], 'r^')
     
     plt.xlabel('X')
     plt.ylabel('Y')
@@ -136,7 +144,8 @@ tgt = (-108.5, 7.38)  # Target point
 speed = 180  # Aircraft speed in knots
 time_minutes = 2  # Time in minutes for the leg length
 track_width = 1.5  # Width of the racetrack in nautical miles
-distance = 2  # Distance of the racetrack to IP in nautical miles
+distance_to_ip = 2  # Distance of the racetrack to IP in nautical miles
+hold_type = "eight-figure" # Either "eight-figure" or "racetrack"
 
-racetrack = generate_racetrack(ip, tgt, speed, time_minutes, track_width, distance)
+racetrack = generate_racetrack(ip, tgt, speed, time_minutes, track_width, distance_to_ip, hold_type)
 plot_racetrack(racetrack, ip, tgt)
