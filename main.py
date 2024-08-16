@@ -157,9 +157,9 @@ def plot_hold_pattern(hold_track_points, ip, tgt):
 # Example usage
 ip = (-108, 7.3)  # Initial Point (latitude, longitude)
 tgt = (-108.5, 7.38)  # Target Point (latitude, longitude)
-speed = 180  # Aircraft speed in knots
-time_minutes = 2  # Time in minutes for the leg length
-track_width = 1.5  # Width of the pattern in nautical miles
+speed = 250  # Aircraft speed in knots
+time_minutes = 2.5  # Time in minutes for the leg length
+track_width = 2  # Width of the pattern in nautical miles
 distance_to_ip = 2  # Distance of the pattern to IP in nautical miles
 # hold_type = "eight-figure"  # Either "eight-figure" or "racetrack"
 hold_type = "racetrack"  # Either "eight-figure" or "racetrack"
