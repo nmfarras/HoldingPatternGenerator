@@ -29,18 +29,13 @@ def generate_racetrack(ip, tgt, speed, time_minutes, track_width):
     # Perpendicular vector to IP-TGT (rotate by 90 degrees)
     perp_vec = np.array([-vec_ip_tgt_norm[1], vec_ip_tgt_norm[0]])
     
-    # Calculate the center points of the semicircles
-    center_1 = np.array(tgt) + perp_vec * track_width / 2
-    center_2 = np.array(tgt) - perp_vec * track_width / 2
+    # Calculate the midpoint between start_leg_1 and end_leg_1
+    midpoint = (np.array(ip) + np.array(tgt)) / 2
     
-    # Calculate the points for the straight legs
-    # start_leg_1 = center_1 + vec_ip_tgt_norm * leg_length / 2
-    # end_leg_1 = center_2 + vec_ip_tgt_norm * leg_length / 2
+    # Adjust the centers to ensure the distance between them is leg_length
+    center_1 = midpoint + (leg_length / 2) * perp_vec
+    center_2 = midpoint - (leg_length / 2) * perp_vec
     
-    # start_leg_2 = center_1 - vec_ip_tgt_norm * leg_length / 2
-    # end_leg_2 = center_2 - vec_ip_tgt_norm * leg_length / 2
-    
-    # Calculate the points for the semicircles
     theta = np.linspace(0, np.pi, 100)
     
     semicircle_1 = np.array([center_1[0] + (track_width / 2) * np.cos(theta),
@@ -53,13 +48,12 @@ def generate_racetrack(ip, tgt, speed, time_minutes, track_width):
     semicircle_2 = (semicircle_2 - center_2) @ np.array([[vec_ip_tgt_norm[0], vec_ip_tgt_norm[1]],
                                                          [-vec_ip_tgt_norm[1], vec_ip_tgt_norm[0]]]) + center_2
     
-    
     # Calculate the points for the straight legs
     start_leg_1 = semicircle_1[-1]
     end_leg_1 = semicircle_2[0]
     
-    start_leg_2 =semicircle_2[-1]
-    end_leg_2 =semicircle_1[0]
+    start_leg_2 = semicircle_2[-1]
+    end_leg_2 = semicircle_1[0]
     
     # Combine points into the racetrack
     racetrack_points = {
