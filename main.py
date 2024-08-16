@@ -1,7 +1,26 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def generate_racetrack(ip, tgt, speed, time_minutes, track_width):
+def compute_semicircle(center, track_width_deg_lon, theta, vec_ip_tgt_norm):
+    """Compute the coordinates of a semicircle given center, track width, angle, and normalization vector."""
+    # Create the semicircle points
+    semicircle = np.array([
+        center[0] + (track_width_deg_lon / 2) * np.cos(theta),
+        center[1] + (track_width_deg_lon / 2) * np.sin(theta)
+    ]).T
+    
+    # Define the transformation matrix
+    transformation_matrix = np.array([
+        [vec_ip_tgt_norm[0], vec_ip_tgt_norm[1]],
+        [-vec_ip_tgt_norm[1], vec_ip_tgt_norm[0]]
+    ])
+    
+    # Apply the transformation
+    semicircle_transformed = (semicircle - center) @ transformation_matrix + center
+    
+    return semicircle_transformed
+
+def generate_racetrack(ip, tgt, speed, time_minutes, track_width, distance):
     """
     Generates a racetrack pattern based on the initial point (IP), target (TGT),
     aircraft speed, and time in minutes.
@@ -22,6 +41,12 @@ def generate_racetrack(ip, tgt, speed, time_minutes, track_width):
     # Calculate leg length (distance covered in the given time)
     leg_length = speed * time_hours  # in nautical miles
     
+    leg_length_deg_lat = leg_length/60
+    
+    track_width_deg_lon = track_width / 60.0
+    
+    distance_deg_lon = distance / 60.0
+    
     # Calculate the vector from IP to TGT
     vec_ip_tgt = np.array([tgt[0] - ip[0], tgt[1] - ip[1]])
     vec_ip_tgt_norm = vec_ip_tgt / np.linalg.norm(vec_ip_tgt)
@@ -30,24 +55,37 @@ def generate_racetrack(ip, tgt, speed, time_minutes, track_width):
     perp_vec = np.array([-vec_ip_tgt_norm[1], vec_ip_tgt_norm[0]])
     
     # Calculate the midpoint between start_leg_1 and end_leg_1
-    midpoint = (np.array(ip) + np.array(tgt)) / 2
+    ## Between IP and TGT
+    # midpoint = (np.array(ip) + np.array(tgt)) / 2
+    
+    ## Behind IP
+    # Calculate the normalized direction vector in the opposite direction
+    midpoint_placement_direction = np.array([-tgt[0] + ip[0], -tgt[1] + ip[1]]) / np.linalg.norm(np.array([-tgt[0] + ip[0], -tgt[1] + ip[1]]))
+    midpoint = np.array([ip[0],ip[1]]) + distance_deg_lon * midpoint_placement_direction
     
     # Adjust the centers to ensure the distance between them is leg_length
-    center_1 = midpoint + (leg_length / 2) * perp_vec
-    center_2 = midpoint - (leg_length / 2) * perp_vec
+    center_1 = midpoint + (leg_length_deg_lat / 2) * perp_vec
+    center_2 = midpoint - (leg_length_deg_lat / 2) * perp_vec
     
     theta = np.linspace(0, np.pi, 100)
     
-    semicircle_1 = np.array([center_1[0] + (track_width / 2) * np.cos(theta),
-                             center_1[1] + (track_width / 2) * np.sin(theta)]).T
-    semicircle_1 = (semicircle_1 - center_1) @ np.array([[vec_ip_tgt_norm[0], vec_ip_tgt_norm[1]],
-                                                         [-vec_ip_tgt_norm[1], vec_ip_tgt_norm[0]]]) + center_1
+    ## This function doesn't required function compute_semicircle()
+    # semicircle_1 = np.array([center_1[0] + (track_width_deg_lon / 2) * np.cos(theta),
+                             # center_1[1] + (track_width_deg_lon / 2) * np.sin(theta)]).T
+    # semicircle_1 = (semicircle_1 - center_1) @ np.array([[vec_ip_tgt_norm[0], vec_ip_tgt_norm[1]],
+                                                         # [-vec_ip_tgt_norm[1], vec_ip_tgt_norm[0]]]) + center_1
     
-    semicircle_2 = np.array([center_2[0] + (track_width / 2) * np.cos(theta + np.pi),
-                             center_2[1] + (track_width / 2) * np.sin(theta + np.pi)]).T
-    semicircle_2 = (semicircle_2 - center_2) @ np.array([[vec_ip_tgt_norm[0], vec_ip_tgt_norm[1]],
-                                                         [-vec_ip_tgt_norm[1], vec_ip_tgt_norm[0]]]) + center_2
+    # semicircle_2 = np.array([center_2[0] + (track_width_deg_lon / 2) * np.cos(theta + np.pi),
+                             # center_2[1] + (track_width_deg_lon / 2) * np.sin(theta + np.pi)]).T
+    # semicircle_2 = (semicircle_2 - center_2) @ np.array([[vec_ip_tgt_norm[0], vec_ip_tgt_norm[1]],
+                                                         # [-vec_ip_tgt_norm[1], vec_ip_tgt_norm[0]]]) + center_2
     
+    # Compute semicircle_1
+    semicircle_1 = compute_semicircle(center_1, track_width_deg_lon, theta, vec_ip_tgt_norm)
+
+    # Compute semicircle_2
+    semicircle_2 = compute_semicircle(center_2, track_width_deg_lon, theta + np.pi, vec_ip_tgt_norm)
+
     # Calculate the points for the straight legs
     start_leg_1 = semicircle_1[-1]
     end_leg_1 = semicircle_2[0]
@@ -65,7 +103,7 @@ def generate_racetrack(ip, tgt, speed, time_minutes, track_width):
     
     return racetrack_points
 
-def plot_racetrack(racetrack_points):
+def plot_racetrack(racetrack_points, ip, tgt):
     plt.figure(figsize=(8, 8))
     
     # Plot straight legs
@@ -82,6 +120,9 @@ def plot_racetrack(racetrack_points):
     semicircle_2 = racetrack_points['semicircle_2']
     plt.plot(semicircle_2[:, 0], semicircle_2[:, 1], 'r-')
     
+    plt.plot(ip[0], ip[1], 'y*')
+    plt.plot(tgt[0], tgt[1], 'k*')
+    
     plt.xlabel('X')
     plt.ylabel('Y')
     plt.grid(True)
@@ -94,7 +135,8 @@ ip = (-108, 7.3)  # Initial point
 tgt = (-108.5, 7.38)  # Target point
 speed = 180  # Aircraft speed in knots
 time_minutes = 2  # Time in minutes for the leg length
-track_width = 1.5  # Width of the racetrack
+track_width = 1.5  # Width of the racetrack in nautical miles
+distance = 2  # Distance of the racetrack to IP in nautical miles
 
-racetrack = generate_racetrack(ip, tgt, speed, time_minutes, track_width)
-plot_racetrack(racetrack)
+racetrack = generate_racetrack(ip, tgt, speed, time_minutes, track_width, distance)
+plot_racetrack(racetrack, ip, tgt)
